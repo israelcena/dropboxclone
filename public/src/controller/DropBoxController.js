@@ -1,0 +1,3 @@
+class DropBoxController {
+  constructor() {}
+}
