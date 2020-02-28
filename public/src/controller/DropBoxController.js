@@ -34,7 +34,7 @@ class DropBoxController {
 
           ajax.open('POST', '/upload');
 
-          ajax.onload = (e) => {
+          ajax.onload = (event) => {
             try {
               resolve(JSON.parse(ajax.responseText));
             } catch (e) {
@@ -42,11 +42,11 @@ class DropBoxController {
             }
           };
 
-          ajax.onerror = (e) => {
-            reject(e);
+          ajax.onerror = (event) => {
+            reject(event);
           };
 
-          ajax.upload.onprogress = (e) => {
+          ajax.upload.onprogress = (event) => {
             this.uploadProgress(e, file);
           };
 
