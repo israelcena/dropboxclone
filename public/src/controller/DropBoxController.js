@@ -1,5 +1,5 @@
 class DropBoxController {
-  constructor() {
+  constructor () {
     this.btnSendFileEl = document.querySelector('#btn-send-file');
     this.inputFileEl = document.querySelector('#files');
 
@@ -19,7 +19,6 @@ class DropBoxController {
 
     this.inputFileEl.addEventListener('change', (e) => {
       this.upLoadTask(e.target.files);
-
       this.snackModalEl.style.display = 'block';
     });
   }
@@ -31,9 +30,7 @@ class DropBoxController {
       promises.push(
         new Promise((resolve, reject) => {
           let ajax = new XMLHttpRequest();
-
           ajax.open('POST', '/upload');
-
           ajax.onload = (event) => {
             try {
               resolve(JSON.parse(ajax.responseText));
