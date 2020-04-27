@@ -2,8 +2,6 @@ class DropBoxController {
   constructor () {
     this.btnSendFileEl = document.querySelector('#btn-send-file');
     this.inputFileEl = document.querySelector('#files');
-
-    //SnackProgress
     this.snackModalEl = document.querySelector('#react-snackbar-root');
     this.progressBarEl = this.snackModalEl.querySelector('.mc-progress-bar-fg');
     this.timeleftEl = this.snackModalEl.querySelector('.timeleft');
@@ -30,12 +28,14 @@ class DropBoxController {
       promises.push(
         new Promise((resolve, reject) => {
           let ajax = new XMLHttpRequest();
+
           ajax.open('POST', '/upload');
+
           ajax.onload = (event) => {
             try {
               resolve(JSON.parse(ajax.responseText));
-            } catch (e) {
-              reject(e);
+            } catch (event) {
+              reject(event);
             }
           };
 
@@ -44,11 +44,14 @@ class DropBoxController {
           };
 
           ajax.upload.onprogress = (event) => {
-            this.uploadProgress(e, file);
+            this.uploadProgress(event, file);
           };
 
           let formData = new FormData();
           formData.append('input-file', file);
+          // Count time on init upload file
+          this.startUploadTime = Date.now();
+
           ajax.send(formData);
         })
       );
@@ -56,11 +59,19 @@ class DropBoxController {
     return Promise.all(promises);
   }
 
-  uploadProgress(e, file) {
-    let loaded = e.loaded;
-    let total = e.total;
-    let porcent = parseInt((loaded / total) * 100);
+  uploadProgress(event, file) {
+    // Count time on init upload file
+    let timeSpent = Date.now() - this.startUploadTime;
 
+    let loaded = event.loaded;
+    let total = event.total;
+    let porcent = parseInt((loaded / total) * 100);
+    let timeLeft = ((100 - porcent) * timeSpent) / porcent
     this.progressBarEl.style.width = `${porcent}%`;
+
+    this.filenameEl.innerHTML = file.name;
+    this.timeleftEl.innerHTML = '';
+
+    console.log(timeSpent, timeLeft, porcent);
   }
 }
