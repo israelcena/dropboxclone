@@ -6,7 +6,6 @@ class DropBoxController {
     this.progressBarEl = this.snackModalEl.querySelector('.mc-progress-bar-fg');
     this.timeleftEl = this.snackModalEl.querySelector('.timeleft');
     this.filenameEl = this.snackModalEl.querySelector('.filename');
-
     this.initEvents();
   }
 
@@ -70,8 +69,28 @@ class DropBoxController {
     this.progressBarEl.style.width = `${porcent}%`;
 
     this.filenameEl.innerHTML = file.name;
-    this.timeleftEl.innerHTML = '';
+    this.timeleftEl.innerHTML = this.FormatTime(timeLeft);
 
     console.log(timeSpent, timeLeft, porcent);
+  }
+
+  FormatTime(duration) {
+    let seconds = parseInt((duration / 1000) % 60)
+    let minutes = parseInt((duration / (1000 * 60)) % 60)
+    let hours = parseInt((duration / (1000 * 60 * 60)) % 24)
+
+    if (hours > 0) {
+      return `${hours} horas, ${minutes} minutos e ${seconds} segundos restantes`
+    }
+
+    if (minutes > 0) {
+      return `${minutes} minutos e ${seconds} segundos restantes`
+    }
+
+    if (seconds > 0) {
+      return `${seconds} segundos restantes`
+    }
+
+    return `Concluido`
   }
 }
