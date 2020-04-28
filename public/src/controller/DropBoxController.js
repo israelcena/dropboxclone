@@ -59,7 +59,7 @@ class DropBoxController {
   }
 
   uploadProgress(event, file) {
-    // Count time on init upload file
+    // Count time spent for upload file
     let timeSpent = Date.now() - this.startUploadTime;
 
     let loaded = event.loaded;
