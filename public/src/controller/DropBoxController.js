@@ -16,11 +16,29 @@ class DropBoxController {
     })
 
     this.inputFileEl.addEventListener('change', (e) => {
+      this.btnSendFileEl.disabled = true
       this.upLoadTask(e.target.files)
+        .then((responses) => {
+          responses.forEach((resp) => {
+            let data = resp.files['input-file']
+            this.getFireBaseRef().push().set(data)
+          })
+          this.uploadComplete()
+        })
+        .catch((err) => {
+          this.uploadComplete()
+          console.error(err)
+        })
       this.modalShow(true)
-      //reset input file
-      this.inputFileEl.value = ''
     })
+  }
+
+  uploadComplete() {
+    this.modalShow(false)
+
+    //When finish task need reset input file
+    this.inputFileEl.value = ''
+    this.btnSendFileEl.disabled = false
   }
 
   connectFireBase() {
@@ -38,6 +56,9 @@ class DropBoxController {
     firebase.initializeApp(firebaseConfig)
   }
 
+  getFireBaseRef() {
+    return firebase.database().ref('files')
+  }
   modalShow(show = true) {
     this.snackModalEl.style.display = show ? 'block' : 'none'
   }
@@ -53,7 +74,6 @@ class DropBoxController {
           ajax.open('POST', '/upload')
 
           ajax.onload = (event) => {
-            this.modalShow(false)
             try {
               resolve(JSON.parse(ajax.responseText))
             } catch (event) {
@@ -62,7 +82,6 @@ class DropBoxController {
           }
 
           ajax.onerror = (event) => {
-            this.modalShow(false)
             reject(event)
           }
 
