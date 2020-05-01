@@ -289,10 +289,8 @@ class DropBoxController {
 				${this.getFileIconView(file)}
       	<div class="name text-center">${file.name}</div>
 		`
-		li.addEventListener('click', e => {
-			li.classList.toggle('selected')
-		})
-
+		//All Events for li
+		this.selectLi(li)
 		return li
 	}
 
@@ -307,6 +305,17 @@ class DropBoxController {
 				let data = snapItem.val()
 				this.listFilesEl.appendChild(this.getFileView(data, key))
 			})
+		})
+	}
+
+	selectLi(li) {
+		li.addEventListener('click', e => {
+			if (!e.ctrlKey) {
+				this.listFilesEl.querySelectorAll('li.selected').forEach(el => {
+					el.classList.remove('selected')
+				})
+			}
+			li.classList.toggle('selected')
 		})
 	}
 }
