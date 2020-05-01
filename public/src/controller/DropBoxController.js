@@ -85,19 +85,15 @@ class DropBoxController {
 		if (duration === Infinity) {
 			return `Calculando tempo estimado`;
 		}
-
 		if (hours > 0) {
 			return `${hours} horas, ${minutes} minutos e ${seconds} segundos restantes`;
 		}
-
 		if (minutes > 0) {
 			return `${minutes} minutos e ${seconds} segundos restantes`;
 		}
-
 		if (seconds > 0) {
 			return `${seconds} segundos restantes`;
 		}
-
 		return `Concluido`;
 	}
 }
