@@ -1,18 +1,46 @@
 class DropBoxController {
 	constructor () {
-		this.connectFireBase()
+		this.onSelectChange = new Event('selectionchange')
 		this.btnSendFileEl = document.querySelector('#btn-send-file')
 		this.inputFileEl = document.querySelector('#files')
 		this.snackModalEl = document.querySelector('#react-snackbar-root')
 		this.progressBarEl = this.snackModalEl.querySelector('.mc-progress-bar-fg')
 		this.timeleftEl = this.snackModalEl.querySelector('.timeleft')
 		this.filenameEl = this.snackModalEl.querySelector('.filename')
-		this.initEvents()
 		this.listFilesEl = document.querySelector('#list-of-files-and-directories')
+		this.newPasteEl = document.querySelector('#btn-new-folder')
+		this.renameEl = document.querySelector('#btn-rename')
+		this.deleteEl = document.querySelector('#btn-delete')
+		this.connectFireBase()
+		this.initEvents()
 		this.readFiles()
 	}
 
+	getSelection() {
+		return this.listFilesEl.querySelectorAll('.selected')
+	}
+
 	initEvents() {
+
+		this.listFilesEl.addEventListener('selectionchange', e => {
+
+			switch (this.getSelection().length) {
+				case 0:
+					this.renameEl.style.display = 'none'
+					this.deleteEl.style.display = 'none'
+					break
+				case 1:
+					this.renameEl.style.display = 'block'
+					this.deleteEl.style.display = 'block'
+					break
+				default:
+					this.deleteEl.style.display = 'block'
+					this.renameEl.style.display = 'none'
+					break
+			}
+
+		})
+
 		this.btnSendFileEl.addEventListener('click', (e) => {
 			this.inputFileEl.click()
 		})
@@ -329,6 +357,7 @@ class DropBoxController {
 							el.classList.add('selected')
 						}
 					})
+					this.listFilesEl.dispatchEvent(this.onSelectChange)
 					return true
 				}
 			}
@@ -339,6 +368,9 @@ class DropBoxController {
 				})
 			}
 			li.classList.toggle('selected')
+			this.listFilesEl.dispatchEvent(this.onSelectChange)
 		})
 	}
+
+
 }
