@@ -1,184 +1,214 @@
+import { response } from 'express'
+
 class DropBoxController {
-	constructor () {
-		this.onSelectChange = new Event('selectionchange')
-		this.btnSendFileEl = document.querySelector('#btn-send-file')
-		this.inputFileEl = document.querySelector('#files')
-		this.snackModalEl = document.querySelector('#react-snackbar-root')
-		this.progressBarEl = this.snackModalEl.querySelector('.mc-progress-bar-fg')
-		this.timeleftEl = this.snackModalEl.querySelector('.timeleft')
-		this.filenameEl = this.snackModalEl.querySelector('.filename')
-		this.listFilesEl = document.querySelector('#list-of-files-and-directories')
-		this.newPasteEl = document.querySelector('#btn-new-folder')
-		this.renameEl = document.querySelector('#btn-rename')
-		this.deleteEl = document.querySelector('#btn-delete')
-		this.connectFireBase()
-		this.initEvents()
-		this.readFiles()
-	}
+  constructor() {
+    this.onSelectChange = new Event('selectionchange')
+    this.btnSendFileEl = document.querySelector('#btn-send-file')
+    this.inputFileEl = document.querySelector('#files')
+    this.snackModalEl = document.querySelector('#react-snackbar-root')
+    this.progressBarEl = this.snackModalEl.querySelector('.mc-progress-bar-fg')
+    this.timeleftEl = this.snackModalEl.querySelector('.timeleft')
+    this.filenameEl = this.snackModalEl.querySelector('.filename')
+    this.listFilesEl = document.querySelector('#list-of-files-and-directories')
+    this.newPasteEl = document.querySelector('#btn-new-folder')
+    this.renameEl = document.querySelector('#btn-rename')
+    this.deleteEl = document.querySelector('#btn-delete')
+    this.connectFireBase()
+    this.initEvents()
+    this.readFiles()
+  }
 
-	getSelection() {
-		return this.listFilesEl.querySelectorAll('.selected')
-	}
+  getSelection() {
+    return this.listFilesEl.querySelectorAll('.selected')
+  }
 
-	initEvents() {
+  removeTask() {
+    let promises = []
 
-		this.renameEl.addEventListener('click', e => {
-			let li = this.getSelection()[0]
-			let file = JSON.parse(li.dataset.file)
+    this.getSelection().forEach((li) => {
+      let file = JSON.parse(li.dataset.file)
+      promises.push(new Promise((resolve, reject) => {}))
+      return Promise.all(promises)
+    })
+  }
 
-			let name = prompt('Renomar o arquivo:', file.name)
+  initEvents() {
+    this.deleteEl.addEventListener('click', (e) => {
+      this.removeTask()
+        .then((response) => {
+          console.log('ok')
+        })
+        .catch((err) => {
+          console.error(err)
+        })
+    })
 
-			if (name) {
-				file.name = name
-				this.getFireBaseRef().child(li.dataset.key).set(file)
-			}
-		})
+    this.renameEl.addEventListener('click', (e) => {
+      let li = this.getSelection()[0]
+      let file = JSON.parse(li.dataset.file)
 
-		this.listFilesEl.addEventListener('selectionchange', e => {
+      let name = prompt('Renomar o arquivo:', file.name)
 
-			switch (this.getSelection().length) {
-				case 0:
-					this.renameEl.style.display = 'none'
-					this.deleteEl.style.display = 'none'
-					break
-				case 1:
-					this.renameEl.style.display = 'block'
-					this.deleteEl.style.display = 'block'
-					break
-				default:
-					this.deleteEl.style.display = 'block'
-					this.renameEl.style.display = 'none'
-					break
-			}
+      if (name) {
+        file.name = name
+        this.getFireBaseRef().child(li.dataset.key).set(file)
+      }
+    })
 
-		})
+    this.listFilesEl.addEventListener('selectionchange', (e) => {
+      switch (this.getSelection().length) {
+        case 0:
+          this.renameEl.style.display = 'none'
+          this.deleteEl.style.display = 'none'
+          break
+        case 1:
+          this.renameEl.style.display = 'block'
+          this.deleteEl.style.display = 'block'
+          break
+        default:
+          this.deleteEl.style.display = 'block'
+          this.renameEl.style.display = 'none'
+          break
+      }
+    })
 
-		this.btnSendFileEl.addEventListener('click', (e) => {
-			this.inputFileEl.click()
-		})
+    this.btnSendFileEl.addEventListener('click', (e) => {
+      this.inputFileEl.click()
+    })
 
-		this.inputFileEl.addEventListener('change', (e) => {
-			this.btnSendFileEl.disabled = true
-			this.upLoadTask(e.target.files)
-				.then((responses) => {
-					responses.forEach((resp) => {
-						let data = resp.files['input-file']
-						this.getFireBaseRef().push().set(data)
-					})
-					this.uploadComplete()
-				})
-				.catch((err) => {
-					this.uploadComplete()
-					console.error(err)
-				})
-			this.modalShow(true)
-		})
-	}
+    this.inputFileEl.addEventListener('change', (e) => {
+      this.btnSendFileEl.disabled = true
+      this.upLoadTask(e.target.files)
+        .then((responses) => {
+          responses.forEach((resp) => {
+            let data = resp.files['input-file']
+            this.getFireBaseRef().push().set(data)
+          })
+          this.uploadComplete()
+        })
+        .catch((err) => {
+          this.uploadComplete()
+          console.error(err)
+        })
+      this.modalShow(true)
+    })
+  }
 
-	uploadComplete() {
-		this.modalShow(false)
-		//When finish task need reset input file
-		this.inputFileEl.value = ''
-		this.btnSendFileEl.disabled = false
-	}
+  uploadComplete() {
+    this.modalShow(false)
+    //When finish task need reset input file
+    this.inputFileEl.value = ''
+    this.btnSendFileEl.disabled = false
+  }
 
-	connectFireBase() {
-		// Your web app's Firebase configuration
-		var firebaseConfig = {
-			apiKey: 'AIzaSyA--SYrpI32GIb02Ze7iy5Etx6im-R9qoU',
-			authDomain: 'dropboxclone-1a99b.firebaseapp.com',
-			databaseURL: 'https://dropboxclone-1a99b.firebaseio.com',
-			projectId: 'dropboxclone-1a99b',
-			storageBucket: 'dropboxclone-1a99b.appspot.com',
-			messagingSenderId: '908248812763',
-			appId: '1:908248812763:web:d8f03ab52b8578171e90fe'
-		}
-		// Initialize Firebase
-		firebase.initializeApp(firebaseConfig)
-	}
+  connectFireBase() {
+    // Your web app's Firebase configuration
+    var firebaseConfig = {
+      apiKey: 'AIzaSyA--SYrpI32GIb02Ze7iy5Etx6im-R9qoU',
+      authDomain: 'dropboxclone-1a99b.firebaseapp.com',
+      databaseURL: 'https://dropboxclone-1a99b.firebaseio.com',
+      projectId: 'dropboxclone-1a99b',
+      storageBucket: 'dropboxclone-1a99b.appspot.com',
+      messagingSenderId: '908248812763',
+      appId: '1:908248812763:web:d8f03ab52b8578171e90fe'
+    }
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig)
+  }
 
-	getFireBaseRef() {
-		return firebase.database().ref('files')
-	}
+  getFireBaseRef() {
+    return firebase.database().ref('files')
+  }
 
-	modalShow(show = true) {
-		this.snackModalEl.style.display = show ? 'block' : 'none'
-	}
+  modalShow(show = true) {
+    this.snackModalEl.style.display = show ? 'block' : 'none'
+  }
 
-	upLoadTask(files) {
-		let promises = []
+  ajax(
+    url,
+    method = 'GET,',
+    formData = new FormData(),
+    onprogress = () => {},
+    onloadstart = () => {}
+  ) {
+    return new Promise((resolve, reject) => {
+      let ajax = new XMLHttpRequest()
+      ajax.open(method, url)
+      ajax.onload = (event) => {
+        try {
+          resolve(JSON.parse(ajax.responseText))
+        } catch (event) {
+          reject(event)
+        }
+      }
+      ajax.onerror = (event) => {
+        reject(event)
+      }
+      ajax.upload.onprogress = onprogress
+      onloadstart()
+      ajax.send(formData)
+    })
+  }
 
-			;[...files].forEach((file) => {
-				promises.push(
-					new Promise((resolve, reject) => {
-						let ajax = new XMLHttpRequest()
+  upLoadTask(files) {
+    let promises = []
 
-						ajax.open('POST', '/upload')
+    ;[...files].forEach((file) => {
+      let formData = new FormData()
+      formData.append('input-file', file)
+      promises.push(
+        this.ajax(
+          '/upload',
+          'POST',
+          formData,
+          () => {
+            this.uploadProgress(event, file)
+          },
+          () => {
+            this.startUploadTime = Date.now()
+          }
+        )
+      )
+    })
+    return Promise.all(promises)
+  }
 
-						ajax.onload = (event) => {
-							try {
-								resolve(JSON.parse(ajax.responseText))
-							} catch (event) {
-								reject(event)
-							}
-						}
+  uploadProgress(event, file) {
+    // Count time spent for upload file
+    let timeSpent = Date.now() - this.startUploadTime
+    let loaded = event.loaded
+    let total = event.total
+    let porcent = parseInt((loaded / total) * 100)
+    let timeLeft = ((100 - porcent) * timeSpent) / porcent
+    this.progressBarEl.style.width = `${porcent}%`
+    this.filenameEl.innerHTML = file.name
+    this.timeleftEl.innerHTML = this.FormatTime(timeLeft)
+  }
 
-						ajax.onerror = (event) => {
-							reject(event)
-						}
+  FormatTime(duration) {
+    let seconds = parseInt((duration / 1000) % 60)
+    let minutes = parseInt((duration / (1000 * 60)) % 60)
+    let hours = parseInt((duration / (1000 * 60 * 60)) % 24)
 
-						ajax.upload.onprogress = (event) => {
-							this.uploadProgress(event, file)
-						}
+    if (duration === Infinity) {
+      return `Calculando tempo estimado`
+    }
+    if (hours > 0) {
+      return `${hours} horas, ${minutes} minutos e ${seconds} segundos restantes`
+    }
+    if (minutes > 0) {
+      return `${minutes} minutos e ${seconds} segundos restantes`
+    }
+    if (seconds > 0) {
+      return `${seconds} segundos restantes`
+    }
+    return `Concluido`
+  }
 
-						let formData = new FormData()
-						formData.append('input-file', file)
-						// Count time on init upload file
-						this.startUploadTime = Date.now()
-						ajax.send(formData)
-					})
-				)
-			})
-		return Promise.all(promises)
-	}
-
-	uploadProgress(event, file) {
-		// Count time spent for upload file
-		let timeSpent = Date.now() - this.startUploadTime
-		let loaded = event.loaded
-		let total = event.total
-		let porcent = parseInt((loaded / total) * 100)
-		let timeLeft = ((100 - porcent) * timeSpent) / porcent
-		this.progressBarEl.style.width = `${porcent}%`
-		this.filenameEl.innerHTML = file.name
-		this.timeleftEl.innerHTML = this.FormatTime(timeLeft)
-	}
-
-	FormatTime(duration) {
-		let seconds = parseInt((duration / 1000) % 60)
-		let minutes = parseInt((duration / (1000 * 60)) % 60)
-		let hours = parseInt((duration / (1000 * 60 * 60)) % 24)
-
-		if (duration === Infinity) {
-			return `Calculando tempo estimado`
-		}
-		if (hours > 0) {
-			return `${hours} horas, ${minutes} minutos e ${seconds} segundos restantes`
-		}
-		if (minutes > 0) {
-			return `${minutes} minutos e ${seconds} segundos restantes`
-		}
-		if (seconds > 0) {
-			return `${seconds} segundos restantes`
-		}
-		return `Concluido`
-	}
-
-	getFileIconView(file) {
-		switch (file.type) {
-
-			case 'application/pdf':
-				return `
+  getFileIconView(file) {
+    switch (file.type) {
+      case 'application/pdf':
+        return `
 				<svg version="1.1" id="Camada_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="160px" height="160px" viewBox="0 0 160 160" enable-background="new 0 0 160 160" xml:space="preserve">
 				<filter height="102%" width="101.4%" id="mc-content-unknown-large-a" filterUnits="objectBoundingBox" y="-.5%" x="-.7%">
 						<feOffset result="shadowOffsetOuter1" in="SourceAlpha" dy="1"></feOffset>
@@ -213,8 +243,8 @@ class DropBoxController {
 				</svg>
 				`
 
-			case 'folder':
-				return `
+      case 'folder':
+        return `
 				<svg width="160" height="160" viewBox="0 0 160 160" class="mc-icon-template-content tile__preview tile__preview--icon">
 				<title>content-video-large</title>
 				<defs>
@@ -234,8 +264,8 @@ class DropBoxController {
 				</svg>
 				`
 
-			case 'video/mp4':
-				return `
+      case 'video/mp4':
+        return `
 				<svg width="160" height="160" viewBox="0 0 160 160" class="mc-icon-template-content tile__preview tile__preview--icon">
 				<title>content-video-large</title>
 				<defs>
@@ -255,11 +285,11 @@ class DropBoxController {
 				</svg>
 				`
 
-			case 'image/png':
-			case 'image/jpeg':
-			case 'image/jpg':
-			case 'image/gif':
-				return `
+      case 'image/png':
+      case 'image/jpeg':
+      case 'image/jpg':
+      case 'image/gif':
+        return `
 				<svg version="1.1" id="Camada_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="160px" height="160px" viewBox="0 0 160 160" enable-background="new 0 0 160 160" xml:space="preserve">
 				<filter height="102%" width="101.4%" id="mc-content-unknown-large-a" filterUnits="objectBoundingBox" y="-.5%" x="-.7%">
 						<feOffset result="shadowOffsetOuter1" in="SourceAlpha" dy="1"></feOffset>
@@ -300,8 +330,8 @@ class DropBoxController {
 			</svg>
 				`
 
-			default:
-				return `
+      default:
+        return `
 				<svg width="160" height="160" viewBox="0 0 160 160" class="mc-icon-template-content tile__preview tile__preview--icon">
 				<title>1357054_617b.jpg</title>
 				<defs>
@@ -319,70 +349,69 @@ class DropBoxController {
 				</g>
 				</svg>
 				`
-		}
-	}
+    }
+  }
 
-	getFileView(file, key) {
-		let li = document.createElement('li')
-		li.dataset.key = key
-		li.dataset.file = JSON.stringify(file)
-		li.innerHTML = `
+  getFileView(file, key) {
+    let li = document.createElement('li')
+    li.dataset.key = key
+    li.dataset.file = JSON.stringify(file)
+    li.innerHTML = `
 				${this.getFileIconView(file)}
       	<div class="name text-center">${file.name}</div>
 		`
-		//All Events for li
-		this.selectLi(li)
-		return li
-	}
+    //All Events for li
+    this.selectLi(li)
+    return li
+  }
 
-	readFiles() {
-		this.getFireBaseRef().on('value', (snap) => {
-			//Remove all itens
-			this.listFilesEl.innerHTML = ''
+  readFiles() {
+    this.getFireBaseRef().on('value', (snap) => {
+      //Remove all itens
+      this.listFilesEl.innerHTML = ''
 
-			//add all itens from firebase
-			snap.forEach((snapItem) => {
-				let key = snapItem.key
-				let data = snapItem.val()
-				this.listFilesEl.appendChild(this.getFileView(data, key))
-			})
-		})
-	}
+      //add all itens from firebase
+      snap.forEach((snapItem) => {
+        let key = snapItem.key
+        let data = snapItem.val()
+        this.listFilesEl.appendChild(this.getFileView(data, key))
+      })
+    })
+  }
 
-	selectLi(li) {
-		li.addEventListener('click', e => {
-			if (e.shiftKey) {
-				let firstLi = this.listFilesEl.querySelector('.selected')
-				if (firstLi) {
-					let indexStart
-					let indexEnd
-					let lis = li.parentElement.childNodes
+  selectLi(li) {
+    li.addEventListener('click', (e) => {
+      if (e.shiftKey) {
+        let firstLi = this.listFilesEl.querySelector('.selected')
+        if (firstLi) {
+          let indexStart
+          let indexEnd
+          let lis = li.parentElement.childNodes
 
-					lis.forEach((el, index) => {
-						if (firstLi === el) indexStart = index
-						if (li === el) indexEnd = index
-					})
+          lis.forEach((el, index) => {
+            if (firstLi === el) indexStart = index
+            if (li === el) indexEnd = index
+          })
 
-					let index = [indexStart, indexEnd].sort()
+          let index = [indexStart, indexEnd].sort()
 
-					lis.forEach((el, i) => {
-						if (i >= index[0] && i <= index[1]) {
-							el.classList.add('selected')
-						}
-					})
-					this.listFilesEl.dispatchEvent(this.onSelectChange)
-					return true
-				}
-			}
+          lis.forEach((el, i) => {
+            if (i >= index[0] && i <= index[1]) {
+              el.classList.add('selected')
+            }
+          })
+          this.listFilesEl.dispatchEvent(this.onSelectChange)
+          return true
+        }
+      }
 
-			if (!e.ctrlKey) {
-				this.listFilesEl.querySelectorAll('li.selected').forEach(el => {
-					el.classList.remove('selected')
-				})
-			}
-			li.classList.toggle('selected')
-			this.listFilesEl.dispatchEvent(this.onSelectChange)
-		})
-	}
-
+      if (!e.ctrlKey) {
+        this.listFilesEl.querySelectorAll('li.selected').forEach((el) => {
+          el.classList.remove('selected')
+        })
+      }
+      li.classList.toggle('selected')
+      this.listFilesEl.dispatchEvent(this.onSelectChange)
+    })
+  }
 }
