@@ -1,5 +1,3 @@
-import { response } from 'express'
-
 class DropBoxController {
   constructor() {
     this.onSelectChange = new Event('selectionchange')
@@ -27,16 +25,26 @@ class DropBoxController {
 
     this.getSelection().forEach((li) => {
       let file = JSON.parse(li.dataset.file)
-      promises.push(new Promise((resolve, reject) => {}))
-      return Promise.all(promises)
+      let key = li.dataset.key
+      let formData = new FormData()
+
+      formData.append('path', file.path)
+      formData.append('key', key)
+
+      promises.push(this.ajax('/file', 'DELETE', formData))
     })
+    return Promise.all(promises)
   }
 
   initEvents() {
     this.deleteEl.addEventListener('click', (e) => {
       this.removeTask()
-        .then((response) => {
-          console.log('ok')
+        .then((responses) => {
+          responses.forEach((response) => {
+            if (response.fields.key) {
+              this.getFireBaseRef().child(response.fields.key).remove()
+            }
+          })
         })
         .catch((err) => {
           console.error(err)
