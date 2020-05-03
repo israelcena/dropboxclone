@@ -1,5 +1,5 @@
 class DropBoxController {
-  constructor() {
+  constructor () {
     this.currentFolder = ['Home']
     this.navEl = document.querySelector('#browse-location')
     this.onSelectChange = new Event('selectionchange')
@@ -106,8 +106,13 @@ class DropBoxController {
       this.upLoadTask(e.target.files)
         .then((responses) => {
           responses.forEach((resp) => {
-            let data = resp.files['input-file']
-            this.getFireBaseRef().push().set(data)
+            this.getFireBaseRef().push().set({
+              name: resp.name,
+              type: resp.contentType,
+              path: resp.customMetadata.downloadURL,
+              size: resp.size
+            })
+            console.log('Response: ', resp)
           })
           this.uploadComplete()
         })
@@ -155,8 +160,8 @@ class DropBoxController {
     url,
     method = 'GET,',
     formData = new FormData(),
-    onprogress = () => {},
-    onloadstart = () => {}
+    onprogress = () => { },
+    onloadstart = () => { }
   ) {
     return new Promise((resolve, reject) => {
       let ajax = new XMLHttpRequest()
@@ -180,25 +185,34 @@ class DropBoxController {
   upLoadTask(files) {
     let promises = []
 
-    ;[...files].forEach((file) => {
-      let formData = new FormData()
-      formData.append('input-file', file)
-      promises.push(
-        this.ajax(
-          '/upload',
-          'POST',
-          formData,
-          () => {
-            this.uploadProgress(event, file)
-          },
-          () => {
-            this.startUploadTime = Date.now()
-          }
+      ;[...files].forEach((file) => {
+        promises.push(new Promise((resolve, reject) => {
+          let fileRef = firebase.storage().ref(this.currentFolder.join('/')).child(file.name)
+          let task = fileRef.put(file)
+          task.on('state_changed', snapshot => {
+            this.uploadProgress({
+              loaded: snapshot.bytesTransferred,
+              total: snapshot.totalBytes
+            }, file)
+          }, error => {
+            console.error(error)
+            reject(error)
+          }, () => {
+            task.snapshot.ref.getDownloadURL().then(downloadURL => {
+              task.snapshot.ref.updateMetadata({ customMetadata: { downloadURL } }).then(metadata => {
+                resolve(metadata)
+              }).catch(error => {
+                console.error('Error update metadata:', error)
+                reject(error)
+              })
+            })
+          })
+        })
         )
-      )
-    })
+      })
     return Promise.all(promises)
   }
+
 
   uploadProgress(event, file) {
     // Count time spent for upload file
