@@ -1,5 +1,7 @@
 class DropBoxController {
   constructor() {
+    this.currentFolder = ['Home']
+    this.navEl = document.querySelector('#browse-location')
     this.onSelectChange = new Event('selectionchange')
     this.btnSendFileEl = document.querySelector('#btn-send-file')
     this.inputFileEl = document.querySelector('#files')
@@ -11,9 +13,10 @@ class DropBoxController {
     this.newPasteEl = document.querySelector('#btn-new-folder')
     this.renameEl = document.querySelector('#btn-rename')
     this.deleteEl = document.querySelector('#btn-delete')
+    this.btnNewFolderEl = document.querySelector('#btn-new-folder')
     this.connectFireBase()
     this.initEvents()
-    this.readFiles()
+    this.openFolder()
   }
 
   getSelection() {
@@ -37,6 +40,19 @@ class DropBoxController {
   }
 
   initEvents() {
+    this.btnNewFolderEl.addEventListener('click', (e) => {
+      let name = prompt('Nome da nova pasta: ')
+      if (name) {
+        this.getFireBaseRef()
+          .push()
+          .set({
+            name,
+            type: 'folder',
+            path: this.currentFolder.join('/')
+          })
+      }
+    })
+
     this.deleteEl.addEventListener('click', (e) => {
       this.removeTask()
         .then((responses) => {
@@ -124,8 +140,10 @@ class DropBoxController {
     firebase.initializeApp(firebaseConfig)
   }
 
-  getFireBaseRef() {
-    return firebase.database().ref('files')
+  getFireBaseRef(path) {
+    if (!path) path = this.currentFolder.join('/')
+
+    return firebase.database().ref(path)
   }
 
   modalShow(show = true) {
@@ -253,23 +271,13 @@ class DropBoxController {
 
       case 'folder':
         return `
-				<svg width="160" height="160" viewBox="0 0 160 160" class="mc-icon-template-content tile__preview tile__preview--icon">
-				<title>content-video-large</title>
-				<defs>
-						<rect id="mc-content-video-large-b" x="30" y="43" width="100" height="74" rx="4"></rect>
-						<filter x="-.5%" y="-.7%" width="101%" height="102.7%" filterUnits="objectBoundingBox" id="mc-content-video-large-a">
-								<feOffset dy="1" in="SourceAlpha" result="shadowOffsetOuter1"></feOffset>
-								<feColorMatrix values="0 0 0 0 0.858823529 0 0 0 0 0.870588235 0 0 0 0 0.88627451 0 0 0 1 0" in="shadowOffsetOuter1"></feColorMatrix>
-						</filter>
-				</defs>
-				<g fill="none" fill-rule="evenodd">
-						<g>
-								<use fill="#000" filter="url(#mc-content-video-large-a)" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#mc-content-video-large-b"></use>
-								<use fill="#F7F9FA" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#mc-content-video-large-b"></use>
-						</g>
-						<path d="M69 67.991c0-1.1.808-1.587 1.794-1.094l24.412 12.206c.99.495.986 1.3 0 1.794L70.794 93.103c-.99.495-1.794-.003-1.794-1.094V67.99z" fill="#637282"></path>
-				</g>
-				</svg>
+			  <svg width="160" height="160" viewBox="0 0 160 160" class="mc-icon-template-content tile__preview tile__preview--icon">
+            <title>content-folder-large</title>
+            <g fill="none" fill-rule="evenodd">
+                <path d="M77.955 53h50.04A3.002 3.002 0 0 1 131 56.007v58.988a4.008 4.008 0 0 1-4.003 4.005H39.003A4.002 4.002 0 0 1 35 114.995V45.99c0-2.206 1.79-3.99 3.997-3.99h26.002c1.666 0 3.667 1.166 4.49 2.605l3.341 5.848s1.281 2.544 5.12 2.544l.005.003z" fill="#71B9F4"></path>
+                <path d="M77.955 52h50.04A3.002 3.002 0 0 1 131 55.007v58.988a4.008 4.008 0 0 1-4.003 4.005H39.003A4.002 4.002 0 0 1 35 113.995V44.99c0-2.206 1.79-3.99 3.997-3.99h26.002c1.666 0 3.667 1.166 4.49 2.605l3.341 5.848s1.281 2.544 5.12 2.544l.005.003z" fill="#92CEFF"></path>
+            </g>
+        </svg>
 				`
 
       case 'video/mp4':
@@ -374,20 +382,91 @@ class DropBoxController {
   }
 
   readFiles() {
+    this.lastFolder = this.currentFolder.join('/')
+
     this.getFireBaseRef().on('value', (snap) => {
-      //Remove all itens
+      //Remove all itens for refresh
       this.listFilesEl.innerHTML = ''
 
       //add all itens from firebase
       snap.forEach((snapItem) => {
         let key = snapItem.key
         let data = snapItem.val()
-        this.listFilesEl.appendChild(this.getFileView(data, key))
+
+        if (data.type) {
+          this.listFilesEl.appendChild(this.getFileView(data, key))
+        }
+      })
+    })
+  }
+
+  openFolder() {
+    if (this.lastFolder) this.getFireBaseRef(this.lastFolder).off('value')
+
+    this.renderNav()
+    this.readFiles()
+  }
+
+  renderNav() {
+    let nav = document.createElement('nav')
+    let path = []
+
+    for (let i = 0; i < this.currentFolder.length; i++) {
+      let folderName = this.currentFolder[i]
+      let span = document.createElement('span')
+      path.push(folderName)
+
+      if (i + 1 === this.currentFolder.length) {
+        span.innerHTML = folderName
+      } else {
+        span.className = 'breadcrumb-segment__wrapper'
+        span.innerHTML = `
+        <span class="ue-effect-container uee-BreadCrumbSegment-link-0">
+        <a href="#" data-path="${path.join(
+          '/'
+        )}" class="breadcrumb-segment">${folderName}</a>
+        </span>
+        <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        class="mc-icon-template-stateless"
+        style="top: 4px; position: relative;"
+        >
+        <title>arrow-right</title>
+        <path
+          d="M10.414 7.05l4.95 4.95-4.95 4.95L9 15.534 12.536 12 9 8.464z"
+          fill="#637282"
+          fill-rule="evenodd"
+        ></path>
+        </svg>
+       `
+      }
+      nav.appendChild(span)
+    }
+    this.navEl.innerHTML = nav.innerHTML
+    this.navEl.querySelectorAll('a').forEach((a) => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault()
+        this.currentFolder = a.dataset.path.split('/')
+        this.openFolder()
       })
     })
   }
 
   selectLi(li) {
+    li.addEventListener('dblclick', (e) => {
+      let file = JSON.parse(li.dataset.file)
+
+      switch (file.type) {
+        case 'folder':
+          this.currentFolder.push(file.name)
+          this.openFolder()
+          break
+        default:
+          window.open('/file?path=' + file.path)
+      }
+    })
     li.addEventListener('click', (e) => {
       if (e.shiftKey) {
         let firstLi = this.listFilesEl.querySelector('.selected')
