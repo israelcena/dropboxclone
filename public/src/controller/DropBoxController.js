@@ -19,6 +19,7 @@ class DropBoxController {
     this.openFolder()
   }
 
+  // Event for work with selected itens
   getSelection() {
     return this.listFilesEl.querySelectorAll('.selected')
   }
