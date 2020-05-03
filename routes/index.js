@@ -27,6 +27,10 @@ router.delete('/file', (req, res) => {
           })
         }
       })
+    } else {
+      res.status(404).json({
+        error: 'File not found.'
+      })
     }
   })
 })
