@@ -1,5 +1,5 @@
 class DropBoxController {
-  constructor () {
+  constructor() {
     this.currentFolder = ['Home']
     this.navEl = document.querySelector('#browse-location')
     this.onSelectChange = new Event('selectionchange')
@@ -24,6 +24,53 @@ class DropBoxController {
     return this.listFilesEl.querySelectorAll('.selected')
   }
 
+  removeFolderTask(ref, name, key) {
+    return new Promise((resolve, reject) => {
+      let folderRef = firebase.database().ref(ref + '/' + name)
+
+      folderRef.on('value', (snapshot) => {
+        folderRef.off('value')
+
+        if (snapshot.exists()) {
+          snapshot.forEach((item) => {
+            let data = item.val()
+            data.key = item.key
+
+            if (data.type === 'folder') {
+              this.removeFolderTask(ref + '/' + name, data.name)
+                .then(() => {
+                  resolve({
+                    fields: {
+                      key: data.key
+                    }
+                  })
+                })
+                .catch((err) => {
+                  reject(err)
+                })
+            } else if (data.type) {
+              this.removeFile(ref + '/' + name, data.name)
+                .then(() => {
+                  resolve({
+                    fields: {
+                      key: data.key
+                    }
+                  })
+                })
+                .catch((err) => {
+                  reject(err)
+                })
+            }
+          })
+
+          folderRef.remove()
+        } else {
+          this.getFirebaseRef('hcode').child(key).remove()
+        }
+      })
+    })
+  }
+
   removeTask() {
     let promises = []
 
@@ -31,19 +78,41 @@ class DropBoxController {
       let file = JSON.parse(li.dataset.file)
       let key = li.dataset.key
 
-      promises.push(new Promise((resolve, reject) => {
-        let fileRef = firebase.storage().ref(this.currentFolder.join('/')).child(file.name)
-
-        fileRef.delete().then(() => {
-          resolve({
-            fields: { key }
-          })
-        }).catch(err => {
-          reject(err)
+      promises.push(
+        new Promise((resolve, reject) => {
+          if (file.type === 'folder') {
+            this.removeFolderTask(this.currentFolder.join('/'), file.name, key)
+              .then(() => {
+                resolve({
+                  fields: {
+                    key
+                  }
+                })
+              })
+              .catch((err) => {
+                reject(err)
+              })
+          } else if (file.type) {
+            this.removeFile(this.currentFolder.join('/'), file.name).then(
+              () => {
+                resolve({
+                  fields: {
+                    key
+                  }
+                })
+              }
+            )
+          }
         })
-      }))
+      )
     })
     return Promise.all(promises)
+  }
+
+  removeFile(ref, name) {
+    let fileRef = firebase.storage().ref(ref).child(name)
+
+    return fileRef.delete()
   }
 
   initEvents() {
@@ -166,8 +235,8 @@ class DropBoxController {
     url,
     method = 'GET,',
     formData = new FormData(),
-    onprogress = () => { },
-    onloadstart = () => { }
+    onprogress = () => {},
+    onloadstart = () => {}
   ) {
     return new Promise((resolve, reject) => {
       let ajax = new XMLHttpRequest()
@@ -191,34 +260,48 @@ class DropBoxController {
   upLoadTask(files) {
     let promises = []
 
-      ;[...files].forEach((file) => {
-        promises.push(new Promise((resolve, reject) => {
-          let fileRef = firebase.storage().ref(this.currentFolder.join('/')).child(file.name)
+    ;[...files].forEach((file) => {
+      promises.push(
+        new Promise((resolve, reject) => {
+          let fileRef = firebase
+            .storage()
+            .ref(this.currentFolder.join('/'))
+            .child(file.name)
           let task = fileRef.put(file)
-          task.on('state_changed', snapshot => {
-            this.uploadProgress({
-              loaded: snapshot.bytesTransferred,
-              total: snapshot.totalBytes
-            }, file)
-          }, error => {
-            console.error(error)
-            reject(error)
-          }, () => {
-            task.snapshot.ref.getDownloadURL().then(downloadURL => {
-              task.snapshot.ref.updateMetadata({ customMetadata: { downloadURL } }).then(metadata => {
-                resolve(metadata)
-              }).catch(error => {
-                console.error('Error update metadata:', error)
-                reject(error)
+          task.on(
+            'state_changed',
+            (snapshot) => {
+              this.uploadProgress(
+                {
+                  loaded: snapshot.bytesTransferred,
+                  total: snapshot.totalBytes
+                },
+                file
+              )
+            },
+            (error) => {
+              console.error(error)
+              reject(error)
+            },
+            () => {
+              task.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                task.snapshot.ref
+                  .updateMetadata({ customMetadata: { downloadURL } })
+                  .then((metadata) => {
+                    resolve(metadata)
+                  })
+                  .catch((error) => {
+                    console.error('Error update metadata:', error)
+                    reject(error)
+                  })
               })
-            })
-          })
+            }
+          )
         })
-        )
-      })
+      )
+    })
     return Promise.all(promises)
   }
-
 
   uploadProgress(event, file) {
     // Count time spent for upload file
